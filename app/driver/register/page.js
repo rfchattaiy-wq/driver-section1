@@ -15,11 +15,11 @@ export default function DriverRegisterPage() {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    vehicle_model: '',
     license_number: '',
+    vehicle_experience: '',
+    license_image_url: '',
   });
 
-  // 1. Verify user session before rendering form
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -35,7 +35,7 @@ export default function DriverRegisterPage() {
       const { data: existingProfile } = await supabase
         .from('driver_profiles')
         .select('id')
-        .eq('user_id', session.user.id)
+        .eq('id', session.user.id)
         .maybeSingle();
 
       if (existingProfile) {
@@ -62,13 +62,14 @@ export default function DriverRegisterPage() {
     setSubmitting(true);
 
     try {
+      // All NOT NULL columns must be supplied
       const payload = {
-        user_id: user.id,
-        email: user.email,
+        id: user.id, // Maps to the authenticated user ID
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim(),
-        vehicle_model: formData.vehicle_model.trim(),
         license_number: formData.license_number.trim(),
+        vehicle_experience: formData.vehicle_experience.trim(),
+        license_image_url: formData.license_image_url.trim() || 'https://placeholder.invalid/license.jpg',
         status: 'pending',
       };
 
@@ -98,21 +99,11 @@ export default function DriverRegisterPage() {
     <main style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>Driver Registration</h1>
-        <p style={styles.subtitle}>Complete your profile to start accepting rides</p>
+        <p style={styles.subtitle}>Complete your profile to register</p>
 
         {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Registered Email</label>
-            <input
-              type="text"
-              value={user?.email || ''}
-              disabled
-              style={{ ...styles.input, backgroundColor: '#1e293b', color: '#94a3b8' }}
-            />
-          </div>
-
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Full Name</label>
             <input
@@ -140,19 +131,6 @@ export default function DriverRegisterPage() {
           </div>
 
           <div style={styles.fieldGroup}>
-            <label style={styles.label}>Vehicle Model & Year</label>
-            <input
-              type="text"
-              name="vehicle_model"
-              placeholder="e.g. Maruti Swift 2022"
-              value={formData.vehicle_model}
-              onChange={handleChange}
-              required
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.fieldGroup}>
             <label style={styles.label}>Driving License Number</label>
             <input
               type="text"
@@ -165,8 +143,33 @@ export default function DriverRegisterPage() {
             />
           </div>
 
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Vehicle Experience</label>
+            <input
+              type="text"
+              name="vehicle_experience"
+              placeholder="e.g. 3 years driving commercial sedans"
+              value={formData.vehicle_experience}
+              onChange={handleChange}
+              required
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>License Document URL (Optional for testing)</label>
+            <input
+              type="text"
+              name="license_image_url"
+              placeholder="https://example.com/license.jpg"
+              value={formData.license_image_url}
+              onChange={handleChange}
+              style={styles.input}
+            />
+          </div>
+
           <button type="submit" disabled={submitting} style={styles.button}>
-            {submitting ? 'Submitting Application...' : 'Register as Driver'}
+            {submitting ? 'Registering...' : 'Complete Registration'}
           </button>
         </form>
       </div>
