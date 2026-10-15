@@ -1,23 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('email');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
-  const handleSendOtp = async (e) => {
+  const handleSendLink = async (e) => {
     e.preventDefault();
     setErrorMsg('');
-    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -25,40 +19,14 @@ export default function LoginPage() {
         email: email.trim(),
         options: {
           shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/driver/status`,
         },
       });
 
       if (error) throw error;
-
-      setSuccessMsg('A 6-digit verification code has been sent to your email.');
-      setStep('otp');
+      setSent(true);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to send OTP. Please check your email and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otp.trim(),
-        type: 'email',
-      });
-
-      if (error) throw error;
-
-      if (data?.session) {
-        router.push('/driver/status');
-      }
-    } catch (err) {
-      setErrorMsg(err.message || 'Invalid or expired OTP. Please try again.');
+      setErrorMsg(err.message || 'Failed to send sign-in link.');
     } finally {
       setLoading(false);
     }
@@ -69,16 +37,29 @@ export default function LoginPage() {
       <div style={styles.card}>
         <h1 style={styles.title}>Driver Portal</h1>
         <p style={styles.subtitle}>
-          {step === 'email'
-            ? 'Sign in with your email address'
-            : `Enter the code sent to ${email}`}
+          {sent ? 'Check your email inbox' : 'Sign in with your email address'}
         </p>
 
         {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
-        {successMsg && <div style={styles.successBanner}>{successMsg}</div>}
 
-        {step === 'email' ? (
-          <form onSubmit={handleSendOtp} style={styles.form}>
+        {sent ? (
+          <div style={styles.sentContainer}>
+            <p style={styles.sentText}>
+              We sent a sign-in link to <strong>{email}</strong>.
+            </p>
+            <p style={styles.hintText}>
+              Open the email on this device and click <strong>"Sign In"</strong> to log in instantly.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setSent(false); setEmail(''); }}
+              style={styles.secondaryButton}
+            >
+              Use a different email
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSendLink} style={styles.form}>
             <label style={styles.label}>Email Address</label>
             <input
               type="email"
@@ -91,41 +72,7 @@ export default function LoginPage() {
             />
 
             <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? 'Sending Code...' : 'Send Verification Code'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyOtp} style={styles.form}>
-            <label style={styles.label}>6-Digit Verification Code</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              placeholder="123456"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              disabled={loading}
-              style={{ ...styles.input, textAlign: 'center', letterSpacing: '4px', fontSize: '18px' }}
-            />
-
-            <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? 'Verifying...' : 'Verify & Log In'}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                setStep('email');
-                setOtp('');
-                setErrorMsg('');
-                setSuccessMsg('');
-              }}
-              style={styles.secondaryButton}
-            >
-              Use a different email
+              {loading ? 'Sending link...' : 'Send Sign-In Link'}
             </button>
           </form>
         )}
@@ -197,14 +144,27 @@ const styles = {
     cursor: 'pointer',
     marginTop: '8px',
   },
+  sentContainer: {
+    textAlign: 'center',
+  },
+  sentText: {
+    fontSize: '15px',
+    lineHeight: '1.5',
+    marginBottom: '8px',
+  },
+  hintText: {
+    fontSize: '13px',
+    color: '#94a3b8',
+    lineHeight: '1.5',
+    marginBottom: '20px',
+  },
   secondaryButton: {
     background: 'none',
     border: 'none',
-    color: '#94a3b8',
-    fontSize: '13px',
+    color: '#60a5fa',
+    fontSize: '14px',
     cursor: 'pointer',
-    textAlign: 'center',
-    marginTop: '4px',
+    textDecoration: 'underline',
   },
   errorBanner: {
     padding: '10px 12px',
@@ -212,15 +172,6 @@ const styles = {
     border: '1px solid #ef4444',
     borderRadius: '6px',
     color: '#fca5a5',
-    fontSize: '13px',
-    marginBottom: '16px',
-  },
-  successBanner: {
-    padding: '10px 12px',
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-    border: '1px solid #22c55e',
-    borderRadius: '6px',
-    color: '#86efac',
     fontSize: '13px',
     marginBottom: '16px',
   },
