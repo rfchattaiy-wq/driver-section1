@@ -1,17 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const router = useRouter();
 
-  const handleSendLink = async (e) => {
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState('email'); // 'email' | 'otp'
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const handleSendOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -19,14 +25,40 @@ export default function LoginPage() {
         email: email.trim(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/driver/status`,
         },
       });
 
       if (error) throw error;
-      setSent(true);
+
+      setSuccessMsg('A 6-digit code has been sent to your email.');
+      setStep('otp');
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to send sign-in link.');
+      setErrorMsg(err.message || 'Failed to send OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'email',
+      });
+
+      if (error) throw error;
+
+      if (data?.session) {
+        router.push('/driver/status');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Invalid or expired code.');
     } finally {
       setLoading(false);
     }
@@ -37,29 +69,14 @@ export default function LoginPage() {
       <div style={styles.card}>
         <h1 style={styles.title}>Driver Portal</h1>
         <p style={styles.subtitle}>
-          {sent ? 'Check your email inbox' : 'Sign in with your email address'}
+          {step === 'email' ? 'Sign in with your email' : `Enter the code sent to ${email}`}
         </p>
 
         {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
+        {successMsg && <div style={styles.successBanner}>{successMsg}</div>}
 
-        {sent ? (
-          <div style={styles.sentContainer}>
-            <p style={styles.sentText}>
-              We sent a sign-in link to <strong>{email}</strong>.
-            </p>
-            <p style={styles.hintText}>
-              Open the email on this device and click <strong>"Sign In"</strong> to log in instantly.
-            </p>
-            <button
-              type="button"
-              onClick={() => { setSent(false); setEmail(''); }}
-              style={styles.secondaryButton}
-            >
-              Use a different email
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSendLink} style={styles.form}>
+        {step === 'email' ? (
+          <form onSubmit={handleSendOtp} style={styles.form}>
             <label style={styles.label}>Email Address</label>
             <input
               type="email"
@@ -70,9 +87,35 @@ export default function LoginPage() {
               disabled={loading}
               style={styles.input}
             />
-
             <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? 'Sending link...' : 'Send Sign-In Link'}
+              {loading ? 'Sending Code...' : 'Send Verification Code'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} style={styles.form}>
+            <label style={styles.label}>6-Digit Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="123456"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+              disabled={loading}
+              style={{ ...styles.input, textAlign: 'center', letterSpacing: '6px', fontSize: '20px' }}
+            />
+            <button type="submit" disabled={loading} style={styles.button}>
+              {loading ? 'Verifying...' : 'Verify & Log In'}
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => { setStep('email'); setOtp(''); }}
+              style={styles.secondaryButton}
+            >
+              Use a different email
             </button>
           </form>
         )}
@@ -144,27 +187,14 @@ const styles = {
     cursor: 'pointer',
     marginTop: '8px',
   },
-  sentContainer: {
-    textAlign: 'center',
-  },
-  sentText: {
-    fontSize: '15px',
-    lineHeight: '1.5',
-    marginBottom: '8px',
-  },
-  hintText: {
-    fontSize: '13px',
-    color: '#94a3b8',
-    lineHeight: '1.5',
-    marginBottom: '20px',
-  },
   secondaryButton: {
     background: 'none',
     border: 'none',
-    color: '#60a5fa',
-    fontSize: '14px',
+    color: '#94a3b8',
+    fontSize: '13px',
     cursor: 'pointer',
-    textDecoration: 'underline',
+    textAlign: 'center',
+    marginTop: '4px',
   },
   errorBanner: {
     padding: '10px 12px',
@@ -172,6 +202,15 @@ const styles = {
     border: '1px solid #ef4444',
     borderRadius: '6px',
     color: '#fca5a5',
+    fontSize: '13px',
+    marginBottom: '16px',
+  },
+  successBanner: {
+    padding: '10px 12px',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    border: '1px solid #22c55e',
+    borderRadius: '6px',
+    color: '#86efac',
     fontSize: '13px',
     marginBottom: '16px',
   },
