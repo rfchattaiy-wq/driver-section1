@@ -2,19 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('email'); // 'email' | 'otp'
+  const [step, setStep] = useState('email');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Step 1: Send OTP code directly to user's email
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -29,9 +28,7 @@ export default function LoginPage() {
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setSuccessMsg('A 6-digit verification code has been sent to your email.');
       setStep('otp');
@@ -42,7 +39,6 @@ export default function LoginPage() {
     }
   };
 
-  // Step 2: Verify the 6-digit token entered by the user
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -56,12 +52,9 @@ export default function LoginPage() {
         type: 'email',
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data?.session) {
-        // Successfully authenticated - route to the driver status/dashboard
         router.push('/driver/status');
       }
     } catch (err) {
@@ -174,4 +167,61 @@ const styles = {
   },
   form: {
     display: 'flex',
-    
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  label: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#cbd5e1',
+  },
+  input: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #334155',
+    backgroundColor: '#0f172a',
+    color: '#f8fafc',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  button: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '8px',
+  },
+  secondaryButton: {
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    fontSize: '13px',
+    cursor: 'pointer',
+    textAlign: 'center',
+    marginTop: '4px',
+  },
+  errorBanner: {
+    padding: '10px 12px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    border: '1px solid #ef4444',
+    borderRadius: '6px',
+    color: '#fca5a5',
+    fontSize: '13px',
+    marginBottom: '16px',
+  },
+  successBanner: {
+    padding: '10px 12px',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    border: '1px solid #22c55e',
+    borderRadius: '6px',
+    color: '#86efac',
+    fontSize: '13px',
+    marginBottom: '16px',
+  },
+};
