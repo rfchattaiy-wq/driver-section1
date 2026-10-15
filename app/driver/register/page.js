@@ -30,19 +30,6 @@ export default function DriverRegisterPage() {
       }
 
       setUser(session.user);
-
-      // Check if driver profile already exists
-      const { data: existingProfile } = await supabase
-        .from('driver_profiles')
-        .select('id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (existingProfile) {
-        router.push('/driver/status');
-        return;
-      }
-
       setLoading(false);
     }
 
@@ -62,10 +49,9 @@ export default function DriverRegisterPage() {
     setSubmitting(true);
 
     try {
-      // All NOT NULL columns must be supplied
       const payload = {
-        id: user.id, // Maps to the authenticated user ID
-        full_name: formData.full_name.trim(),
+        id: user.id, // Supabase Auth User ID
+        full_name: formData.full_name.trim(), // പൂർണ്ണ നാമം
         phone: formData.phone.trim(),
         license_number: formData.license_number.trim(),
         vehicle_experience: formData.vehicle_experience.trim(),
@@ -81,7 +67,7 @@ export default function DriverRegisterPage() {
 
       router.push('/driver/status');
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to submit driver registration.');
+      setErrorMsg(err.message || 'രജിസ്ട്രേഷൻ പരാജയപ്പെട്ടു.');
     } finally {
       setSubmitting(false);
     }
@@ -89,49 +75,52 @@ export default function DriverRegisterPage() {
 
   if (loading) {
     return (
-      <main style={styles.container}>
-        <p style={{ color: '#94a3b8' }}>Checking authentication...</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#fff' }}>
+        <p>പരിശോധിക്കുന്നു...</p>
       </main>
     );
   }
 
   return (
-    <main style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Driver Registration</h1>
-        <p style={styles.subtitle}>Complete your profile to register</p>
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '20px' }}>
+      <div style={{ maxWidth: '450px', width: '100%', background: '#1e293b', padding: '30px', borderRadius: '12px', color: '#fff' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>ഡ്രൈവർ രജിസ്ട്രേഷൻ</h2>
 
-        {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
+        {errorMsg && (
+          <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px', borderRadius: '6px', marginBottom: '15px' }}>
+            {errorMsg}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Full Name</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={{ fontSize: '13px', color: '#cbd5e1' }}>പൂർണ്ണ നാമം (Full Name)</label>
             <input
               type="text"
               name="full_name"
-              placeholder="e.g. Rahul Sharma"
+              placeholder="നിങ്ങളുടെ പേര് നൽകുക"
               value={formData.full_name}
               onChange={handleChange}
               required
-              style={styles.input}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#fff', marginTop: '5px' }}
             />
           </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Phone Number</label>
+          <div>
+            <label style={{ fontSize: '13px', color: '#cbd5e1' }}>ഫോൺ നമ്പർ (Phone)</label>
             <input
               type="tel"
               name="phone"
-              placeholder="+91 98765 43210"
+              placeholder="9876543210"
               value={formData.phone}
               onChange={handleChange}
               required
-              style={styles.input}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#fff', marginTop: '5px' }}
             />
           </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Driving License Number</label>
+          <div>
+            <label style={{ fontSize: '13px', color: '#cbd5e1' }}>ഡ്രൈവിംഗ് ലൈസൻസ് നമ്പർ (License Number)</label>
             <input
               type="text"
               name="license_number"
@@ -139,119 +128,32 @@ export default function DriverRegisterPage() {
               value={formData.license_number}
               onChange={handleChange}
               required
-              style={styles.input}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#fff', marginTop: '5px' }}
             />
           </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Vehicle Experience</label>
+          <div>
+            <label style={{ fontSize: '13px', color: '#cbd5e1' }}>വാഹന പരിചയം (Vehicle Experience)</label>
             <input
               type="text"
               name="vehicle_experience"
-              placeholder="e.g. 3 years driving commercial sedans"
+              placeholder="ഉദാഹരണത്തിന്: 3 Years"
               value={formData.vehicle_experience}
               onChange={handleChange}
               required
-              style={styles.input}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#fff', marginTop: '5px' }}
             />
           </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>License Document URL (Optional for testing)</label>
-            <input
-              type="text"
-              name="license_image_url"
-              placeholder="https://example.com/license.jpg"
-              value={formData.license_image_url}
-              onChange={handleChange}
-              style={styles.input}
-            />
-          </div>
-
-          <button type="submit" disabled={submitting} style={styles.button}>
-            {submitting ? 'Registering...' : 'Complete Registration'}
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{ padding: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
+          >
+            {submitting ? 'രജിസ്റ്റർ ചെയ്യുന്നു...' : 'രജിസ്റ്റർ ചെയ്യുക'}
           </button>
         </form>
       </div>
     </main>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0f172a',
-    padding: '24px 16px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '480px',
-    backgroundColor: '#1e293b',
-    borderRadius: '12px',
-    padding: '32px 28px',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
-    color: '#f8fafc',
-  },
-  title: {
-    margin: '0 0 8px 0',
-    fontSize: '24px',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    margin: '0 0 24px 0',
-    fontSize: '14px',
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  fieldGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '500',
-    color: '#cbd5e1',
-  },
-  input: {
-    width: '100%',
-    padding: '11px 14px',
-    borderRadius: '8px',
-    border: '1px solid #334155',
-    backgroundColor: '#0f172a',
-    color: '#f8fafc',
-    fontSize: '14px',
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  button: {
-    padding: '12px',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '10px',
-  },
-  errorBanner: {
-    padding: '10px 14px',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    border: '1px solid #ef4444',
-    borderRadius: '8px',
-    color: '#fca5a5',
-    fontSize: '13px',
-    marginBottom: '16px',
-  },
-};
