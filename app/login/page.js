@@ -54,8 +54,34 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      if (data?.session) {
+      const user = data?.session?.user;
+      if (!user) throw new Error('No active session found.');
+
+      // 1. Check if user is an admin
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (userProfile?.role === 'admin') {
+        router.push('/admin/drivers');
+        return;
+      }
+
+      // 2. Check if user already submitted a driver profile
+      const { data: driverProfile } = await supabase
+        .from('driver_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (driverProfile) {
+        // Existing applicant -> view progress
         router.push('/driver/status');
+      } else {
+        // First-time applicant -> complete registration form
+        router.push('/driver/register');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Invalid or expired code.');
