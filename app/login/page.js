@@ -54,34 +54,9 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      const user = data?.session?.user;
-      if (!user) throw new Error('No active session found.');
-
-      // 1. Check if user is an admin
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (userProfile?.role === 'admin') {
-        router.push('/admin/drivers');
-        return;
-      }
-
-      // 2. Check if user already submitted a driver profile
-      const { data: driverProfile } = await supabase
-        .from('driver_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (driverProfile) {
-        // Existing applicant -> view progress
-        router.push('/driver/status');
-      } else {
-        // First-time applicant -> complete registration form
-        router.push('/driver/register');
+      if (data?.session) {
+        // Direct all authenticated users to the central dashboard
+        router.push('/dashboard');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Invalid or expired code.');
@@ -93,9 +68,9 @@ export default function LoginPage() {
   return (
     <main style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Driver Portal</h1>
+        <h1 style={styles.title}>EasyDrive Portal</h1>
         <p style={styles.subtitle}>
-          {step === 'email' ? 'Sign in with your email' : `Enter the code sent to ${email}`}
+          {step === 'email' ? 'Sign in or register with your email' : `Enter the code sent to ${email}`}
         </p>
 
         {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
@@ -106,7 +81,7 @@ export default function LoginPage() {
             <label style={styles.label}>Email Address</label>
             <input
               type="email"
-              placeholder="driver@example.com"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -114,7 +89,7 @@ export default function LoginPage() {
               style={styles.input}
             />
             <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? 'Sending Code...' : 'Send Verification Code'}
+              {loading ? 'Sending Code...' : 'Continue with Email'}
             </button>
           </form>
         ) : (
@@ -133,7 +108,7 @@ export default function LoginPage() {
               style={{ ...styles.input, textAlign: 'center', letterSpacing: '6px', fontSize: '20px' }}
             />
             <button type="submit" disabled={loading} style={styles.button}>
-              {loading ? 'Verifying...' : 'Verify & Log In'}
+              {loading ? 'Verifying...' : 'Verify & Enter Dashboard'}
             </button>
             <button
               type="button"
